@@ -13,12 +13,12 @@
   "type": "commonjs",
   "dependencies": {
     "africastalking": "^0.7.9",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"
   },
- "dependencies": {
-    "africastalking": "^0.7.9",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+  "devDependencies": {
+    "jest": "^30.5.0",
+    "supertest": "^7.2.2"
   }
 }
