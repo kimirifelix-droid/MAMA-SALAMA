@@ -1,11 +1,13 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const { sendSms, hasCredentials } = require('./atClient');
 const store = require('./store');
 
 const app = express();
 app.use(express.urlencoded({ extended: false })); // AT posts application/x-www-form-urlencoded
 app.use(express.json());
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 
 // In-memory USSD menu state, keyed by sessionId (AT's session lasts a few minutes)
 const ussdSessions = new Map();
@@ -138,6 +140,46 @@ app.post('/sms/send-reminder', async (req, res) => {
   if (!phoneNumber || !message) return res.status(400).json({ error: 'phoneNumber and message required' });
   const result = await sendSms(phoneNumber, message);
   res.json({ sent: true, result });
+});
+
+app.post('/api/contraction', (req, res) => {
+  const { deviceId, kind } = req.body || {};
+  if (!deviceId || (kind !== 'start' && kind !== 'end')) {
+    return res.status(400).json({ ok: false, error: 'deviceId and kind ("start" or "end") are required' });
+  }
+  const session = store.logContractionPing(deviceId, kind);
+  res.json({ ok: true, session });
+});
+
+app.post('/api/sos', async (req, res) => {
+  const { deviceId, lat, lng, accuracy } = req.body || {};
+  if (!deviceId) return res.status(400).json({ ok: false, error: 'deviceId is required' });
+
+  const event = store.logSos(deviceId, {
+    source: 'web',
+    stage: 'requested',
+    location: (typeof lat === 'number' && typeof lng === 'number') ? { lat, lng, accuracy } : null,
+  });
+
+  const locText = event.location
+    ? `https://maps.google.com/?q=${event.location.lat},${event.location.lng}`
+    : 'location unavailable';
+  const result = await sendSms(
+    process.env.MIDWIFE_ALERT_NUMBER || '+254700000000',
+    `SOS via web app. Device ${deviceId} at ${event.at}. Location: ${locText}`
+  );
+
+  res.json({ ok: true, event, smsResult: result });
+});
+
+app.post('/api/anc-optin', async (req, res) => {
+  const { deviceId, weeksPregnant } = req.body || {};
+  const weeks = parseInt(weeksPregnant, 10);
+  if (!deviceId || Number.isNaN(weeks) || weeks < 1 || weeks > 42) {
+    return res.status(400).json({ ok: false, error: 'deviceId and a valid weeksPregnant (1-42) are required' });
+  }
+  const mother = store.upsertMother(deviceId, { weeksPregnant: weeks, ancOptIn: true, optInAt: new Date().toISOString() });
+  res.json({ ok: true, mother });
 });
 
 app.get('/health', (req, res) => {
