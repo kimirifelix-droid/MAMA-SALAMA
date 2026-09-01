@@ -1,0 +1,23 @@
+{
+  "name": "mama-salama-backend",
+  "version": "1.0.0",
+  "description": "Mama Salama USSD/SMS backend (Africa's Talking)",
+  "main": "server.js",
+  "scripts": {
+    "test": "jest",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "africastalking": "^0.7.9",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "jest": "^30.5.0",
+    "supertest": "^7.2.2"
+  }
+}
